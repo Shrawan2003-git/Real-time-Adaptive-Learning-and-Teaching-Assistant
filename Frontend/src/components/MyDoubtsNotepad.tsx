@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Send, Trash2, Edit2, MessageSquare } from 'lucide-react';
+import { db, auth } from '../services/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface DraftDoubt {
     id: string;
@@ -15,23 +17,31 @@ interface MyDoubtsNotepadProps {
 export const MyDoubtsNotepad: React.FC<MyDoubtsNotepadProps> = ({ onSendDoubt, disabled }) => {
     const [drafts, setDrafts] = useState<DraftDoubt[]>([]);
     const [newDraft, setNewDraft] = useState('');
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from local storage on mount
+    const userId = auth.currentUser?.uid;
+    const draftsDocRef = userId ? doc(db, 'userDrafts', userId) : null;
+
+    // Load from Firestore on mount
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem('vta_student_drafts');
-            if (saved) {
-                setDrafts(JSON.parse(saved));
-            }
-        } catch (e) {
-            console.error("Failed to load drafts");
+        if (!draftsDocRef) {
+            setIsLoaded(true);
+            return;
         }
+        getDoc(draftsDocRef).then((docSnap) => {
+            if (docSnap.exists() && docSnap.data().drafts) {
+                setDrafts(docSnap.data().drafts);
+            }
+        }).catch(err => console.error("Failed to load drafts:", err))
+            .finally(() => setIsLoaded(true));
     }, []);
 
-    // Save to local storage when drafts change
+    // Save to Firestore when drafts change
     useEffect(() => {
-        localStorage.setItem('vta_student_drafts', JSON.stringify(drafts));
-    }, [drafts]);
+        if (!draftsDocRef || !isLoaded) return;
+        setDoc(draftsDocRef, { drafts, lastUpdated: new Date().toISOString() }, { merge: true })
+            .catch(err => console.error("Failed to save drafts:", err));
+    }, [drafts, isLoaded]);
 
     const handleAddDraft = () => {
         if (!newDraft.trim()) return;

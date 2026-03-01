@@ -10,7 +10,9 @@ import { SessionHistory } from './components/SessionHistory';
 import { MyDoubtsNotepad } from './components/MyDoubtsNotepad';
 import { StudentSelfStudy } from './components/StudentSelfStudy';
 import { Auth } from './components/Auth';
+import { Footer } from './components/Footer';
 import { auth } from './services/firebase';
+import { Sparkles } from 'lucide-react'; // Added import
 
 // Landing Page Component
 const LandingPage: React.FC = () => {
@@ -38,92 +40,108 @@ const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center p-4">
-      <div className="bg-white max-w-4xl w-full rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-64px)] bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+
+      {/* FULLSCREEN Custom User Animation Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-70 pointer-events-none"
+      >
+        <source src="/animation bg.mp4" type="video/mp4" />
+      </video>
+
+      {/* Fullscreen Overlay to ensure the card stands out */}
+      <div className="absolute inset-0 bg-black/40 pointer-events-none"></div>
+
+      <div className="bg-white/95 backdrop-blur-xl max-w-4xl w-full rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/20 overflow-hidden flex flex-col md:flex-row relative z-10 animate-fade-in">
+
         {/* Left Side: Branding */}
-        <div className="md:w-1/2 p-12 flex flex-col justify-center bg-indigo-600 text-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-            <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-            </svg>
-          </div>
+        <div className="md:w-1/2 p-10 lg:p-12 flex flex-col justify-center text-white relative overflow-hidden bg-transparent">
+          {/* Dark Overlay for Text Readability slightly darkened for absolute bg */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-black/60 pointer-events-none rounded-l-3xl"></div>
+
+          {/* Dark Overlay for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/60 to-black/80 pointer-events-none"></div>
+
           <div className="relative z-10">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-              <GraduationCap className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center mb-8 shadow-xl transform transition-transform hover:scale-110 hover:rotate-6 duration-300">
+              <GraduationCap className="w-12 h-12 text-white drop-shadow-md" />
             </div>
-            <h1 className="text-4xl font-bold mb-4">EduGenie VTA</h1>
-            <p className="text-indigo-100 text-lg leading-relaxed mb-8">
+            <h1 className="text-5xl font-extrabold mb-6 tracking-tight drop-shadow-sm text-white">EduGenie VTA</h1>
+            <p className="text-indigo-100 text-lg leading-relaxed mb-10 font-medium opacity-90">
               The AI-powered Virtual Teaching Assistant. Empowering teachers with instant content and students with adaptive guidance.
             </p>
-            <div className="flex gap-4 text-sm font-medium text-indigo-200">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span> Online</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"></span> Gemini AI Active</span>
+            <div className="flex gap-4 text-sm font-semibold text-indigo-100 bg-black/30 w-fit px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+              <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></span> Online</span>
+              <span className="w-px h-4 bg-white/20"></span>
+              <span className="flex items-center gap-2 text-blue-200"><Sparkles className="w-4 h-4" /> Gemini AI</span>
             </div>
           </div>
         </div>
 
         {/* Right Side: Selection */}
-        <div className="md:w-1/2 p-12 flex flex-col justify-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-8">Select Your Role</h2>
+        <div className="md:w-1/2 p-10 lg:p-12 flex flex-col justify-center bg-white">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+          <p className="text-sm text-gray-500 mb-8 font-medium">Select your portal to continue</p>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             <button
               onClick={handleTeacherModeClick}
-              className="w-full p-6 rounded-xl border-2 border-gray-100 hover:border-indigo-600 hover:bg-indigo-50 transition-all group text-left relative overflow-hidden hover:-translate-y-1 hover:shadow-lg animate-slide-up"
+              className="w-full p-5 rounded-xl border-2 border-gray-100 hover:border-indigo-600 hover:bg-indigo-50/50 hover:shadow-lg transition-all duration-300 group text-left relative overflow-hidden hover:-translate-y-0.5 bg-white"
             >
-              <div className="relative z-10 flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 transition-colors">
-                  <Users className="w-6 h-6 text-indigo-600 group-hover:text-white" />
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:border-indigo-600 transition-all duration-300 shadow-sm group-hover:shadow-indigo-200">
+                  <Users className="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors duration-300" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 group-hover:text-indigo-700">Teacher Mode</h3>
-                  <p className="text-sm text-gray-500 mt-1">Design lessons, generate diagrams, and broadcast content.</p>
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors duration-300">Teacher Portal</h3>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Design lessons, generate diagrams, and broadcast.</p>
                 </div>
               </div>
-              <ArrowRight className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all text-indigo-600" />
+              <ArrowRight className="absolute right-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 text-indigo-600 w-5 h-5" />
             </button>
 
             <button
               onClick={() => navigate('/login?mode=student')}
-              className="w-full p-6 rounded-xl border-2 border-gray-100 hover:border-indigo-600 hover:bg-indigo-50 transition-all group text-left relative overflow-hidden hover:-translate-y-1 hover:shadow-lg animate-slide-up animation-delay-100"
+              className="w-full p-5 rounded-xl border-2 border-gray-100 hover:border-blue-600 hover:bg-blue-50/50 hover:shadow-lg transition-all duration-300 group text-left relative overflow-hidden hover:-translate-y-0.5 bg-white"
             >
-              <div className="relative z-10 flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 transition-colors">
-                  <GraduationCap className="w-6 h-6 text-indigo-600 group-hover:text-white" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300 shadow-sm group-hover:shadow-blue-200">
+                  <GraduationCap className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors duration-300" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 group-hover:text-indigo-700">Student Mode</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Join the active classroom session or wait for broadcast.
-                  </p>
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">Student Portal</h3>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Join active classrooms and get adaptive guidance.</p>
                 </div>
               </div>
-              <ArrowRight className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all text-indigo-600" />
+              <ArrowRight className="absolute right-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 text-blue-600 w-5 h-5" />
             </button>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">
-              Start as a Teacher to create a lesson, then switch to Student view to experience the VTA.
-            </p>
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <button
               onClick={() => {
                 import('./utils/MockData').then(m => {
-                  // Direct navigation to student with state is tricky with HashRouter if we want "Demo" mode
-                  // So we'll navigate to /student and pass state or just use global sync
-                  // For demo, we can just broadcast the lesson!
                   const sessionId = startBroadcast(m.DEMO_LESSON, 'Demo Teacher');
                   navigate(`/student?sessionId=${sessionId}`);
                 });
               }}
-              className="mt-4 text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline uppercase tracking-wide"
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-wider flex items-center justify-center gap-2 mx-auto group"
             >
-              Or Try a Quick Demo Lesson
+              <PlayCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              Try a Quick Demo Lesson
             </button>
           </div>
 
         </div>
       </div>
+
+
 
       {/* Active Session Warning Modal */}
       {showWarning && (
@@ -246,6 +264,7 @@ const StudentRoute: React.FC = () => {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [historyLesson, setHistoryLesson] = useState<LessonData | null>(null);
   const [studentName, setStudentName] = useState<string>("Student");
+  const [activeDashboardTab, setActiveDashboardTab] = useState<'live' | 'self-study'>('live');
 
   useEffect(() => {
     // Basic protection
@@ -338,64 +357,96 @@ const StudentRoute: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex-1 max-w-4xl mx-auto w-full p-6 pt-12 flex flex-col items-center">
+      <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 pt-8 md:pt-12 flex flex-col lg:flex-row gap-8 items-start justify-center">
 
-        {/* Active Sessions List */}
-        <div className="w-full max-w-2xl mb-12">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">Live Classrooms</h2>
+        {/* Left Column - Main Content */}
+        <div className="flex-1 flex flex-col items-center w-full max-w-2xl">
+          {/* Dashboard Tabs */}
+          <div className="w-full flex gap-6 mb-8 border-b border-gray-200">
+            <button
+              onClick={() => setActiveDashboardTab('live')}
+              className={`pb-3 px-2 font-bold text-sm transition-all border-b-2 ${activeDashboardTab === 'live' ? 'border-[#00E5FF] text-blue-600 shadow-[0_2px_10px_rgba(0,229,255,0.2)]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+            >
+              Live Classrooms & History
+            </button>
+            <button
+              onClick={() => setActiveDashboardTab('self-study')}
+              className={`pb-3 px-2 font-bold text-sm transition-all border-b-2 ${activeDashboardTab === 'self-study' ? 'border-[#00E5FF] text-blue-600 shadow-[0_2px_10px_rgba(0,229,255,0.2)]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+            >
+              AI Self-Study Dashboard
+            </button>
           </div>
 
-          {activeSessions.length === 0 ? (
-            <div className="bg-white border text-center border-gray-200 rounded-xl p-8 shadow-sm">
-              <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No live classes right now.</p>
-              <p className="text-sm text-gray-400 mt-1">Wait for your teacher to start a broadcast.</p>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {activeSessions.map((session) => (
-                <div key={session.sessionId} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold">{session.lesson.level}</span>
-                      <span className="text-sm font-semibold text-gray-500">{session.teacherName}</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900">{session.topic}</h3>
+          {activeDashboardTab === 'live' && (
+            <>
+              {/* Active Sessions List */}
+              <div className="w-full mb-12 animate-fadeIn">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center ring-1 ring-green-500/30">
+                    <span className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.6)]"></span>
                   </div>
-                  <button
-                    onClick={() => navigate(`/student?sessionId=${session.sessionId}`)}
-                    className="flex justify-center items-center h-10 px-6 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
-                  >
-                    Join Lesson
-                  </button>
+                  <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-400 font-inter tracking-tight">Live Classrooms</h2>
                 </div>
-              ))}
+
+                {activeSessions.length === 0 ? (
+                  <div className="dashboard-card border-dashed border-2 border-emerald-500/20 text-center rounded-3xl p-10 shadow-lg relative overflow-hidden flex flex-col items-center justify-center">
+                    {/* Subtle 2D abstract traditional/futuristic element illustration */}
+                    <div className="w-32 h-32 relative mb-6 opacity-60 mix-blend-multiply">
+                      <div className="absolute inset-0 border-4 border-amber-200/50 rounded-lg transform rotate-6 transition-transform hover:rotate-12 duration-500"></div>
+                      <div className="absolute inset-0 border-4 border-emerald-400/40 rounded-full transform -rotate-3 transition-transform hover:-rotate-12 duration-500"></div>
+                      <div className="absolute inset-0 bg-gradient-to-tr from-amber-100/30 to-blue-200/30 backdrop-blur-sm rounded-xl"></div>
+                      <Sparkles className="w-10 h-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600/50" />
+                    </div>
+                    <p className="text-gray-500 font-bold text-lg font-inter">No live classes right now.</p>
+                    <p className="text-sm text-gray-400 mt-2 font-medium">Wait for your teacher to start a broadcast.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-5">
+                    {activeSessions.map((session) => (
+                      <div key={session.sessionId} className="dashboard-card rounded-2xl p-6 flex items-center justify-between group">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold">{session.lesson.level}</span>
+                            <span className="text-sm font-semibold text-gray-500">{session.teacherName}</span>
+                          </div>
+                          <h3 className="text-xl font-extrabold text-gray-900 group-hover:text-emerald-700 transition-colors">{session.topic}</h3>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/student?sessionId=${session.sessionId}`)}
+                          className="flex justify-center items-center h-12 px-8 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-bold shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all text-sm tracking-wide"
+                        >
+                          Join Lesson
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* History Section */}
+              <div className="w-full animate-fadeIn">
+                <SessionHistory onSelectSession={setHistoryLesson} />
+              </div>
+            </>
+          )}
+
+          {/* Self-Study Dashboard Section */}
+          {activeDashboardTab === 'self-study' && (
+            <div className="w-full animate-fadeIn">
+              <StudentSelfStudy />
             </div>
           )}
         </div>
 
-        {/* History Section */}
-        <div className="w-full max-w-2xl">
-          <SessionHistory onSelectSession={setHistoryLesson} />
-        </div>
-
-        {/* Self-Study Dashboard Section */}
-        <div className="w-full max-w-2xl mt-8">
-          <StudentSelfStudy />
-        </div>
-
-        {/* Doubts Management Section */}
-        <div className="w-full max-w-2xl mt-8">
+        {/* Right Column - Doubts Notepad */}
+        <div className="w-full lg:w-[320px] shrink-0 sticky top-24 pt-2">
           <MyDoubtsNotepad
             onSendDoubt={() => { }}
             disabled={true}
           />
-          <p className="text-xs text-gray-500 text-center mt-3">
-            * You can only send doubts to the teacher when you are in an active live session. Saved drafts will be available when you join one.
+          <p className="text-xs text-slate-500 text-center mt-4 bg-white/70 backdrop-blur-md p-4 border border-slate-200/80 rounded-2xl leading-relaxed shadow-sm font-medium">
+            💡 <span className="text-blue-600 font-bold mb-1 block">Draft Mode</span>
+            Jot your doubts here anytime! They will be securely saved and ready to send instantly when you jump into a live session.
           </p>
         </div>
 

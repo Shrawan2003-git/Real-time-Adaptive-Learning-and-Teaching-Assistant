@@ -3,6 +3,8 @@ import { Send, Bot, User, Mic, ImageIcon, X } from 'lucide-react';
 import { ChatMessage, LessonData } from '../types';
 import { chatWithTutor } from '../services/geminiService';
 import { LiveVoiceMode } from './LiveVoiceMode';
+import { db, auth } from '../services/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface ChatInterfaceProps {
   lesson: LessonData;
@@ -22,6 +24,38 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ lesson }) => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const userId = auth.currentUser?.uid;
+  const chatDocRef = userId ? doc(db, 'userChats', `${userId}_${lesson.topic.replace(/[^a-zA-Z0-9]/g, '_')}`) : null;
+
+  useEffect(() => {
+    if (!chatDocRef) return;
+    getDoc(chatDocRef).then((docSnap) => {
+      if (docSnap.exists() && docSnap.data().messages) {
+        const loadedMsgs = docSnap.data().messages.map((m: any) => ({
+          ...m,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        }));
+        setMessages(loadedMsgs);
+      }
+    }).catch(err => console.error("Failed to load chat history:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!chatDocRef || messages.length <= 1) return;
+    const saveToFs = async () => {
+      try {
+        const msgsToSave = messages.map(m => ({
+          ...m,
+          timestamp: m.timestamp.toISOString()
+        }));
+        await setDoc(chatDocRef, { topic: lesson.topic, messages: msgsToSave, lastUpdated: new Date().toISOString() }, { merge: true });
+      } catch (err) {
+        console.error("Failed to save chat history:", err);
+      }
+    };
+    saveToFs();
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -134,18 +168,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ lesson }) => {
   }
 
   return (
-    <div className="flex flex-col h-[500px] bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="flex flex-col h-[500px] dashboard-card border border-[#00E5FF]/20 overflow-hidden relative group">
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-50/20 to-transparent pointer-events-none"></div>
+
       {/* Header */}
-      <div className="bg-blue-50 p-4 border-b border-blue-100 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold text-blue-900">Virtual Tutor</h3>
+      <div className="bg-white/40 backdrop-blur-md p-4 border-b border-[#00E5FF]/20 flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-100/80 flex items-center justify-center shadow-inner ring-1 ring-[#00E5FF]/30">
+            <Bot className="w-5 h-5 text-[#00E5FF]" />
+          </div>
+          <h3 className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-[#00E5FF] font-inter tracking-wide">Virtual Tutor</h3>
         </div>
         <button
           onClick={() => setMode('voice')}
-          className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-200 transition-colors font-medium"
+          className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-blue-600 to-[#00E5FF] text-white px-4 py-1.5 rounded-full hover:shadow-[0_0_10px_rgba(0,229,255,0.4)] transition-all font-bold tracking-wider uppercase"
         >
-          <Mic className="w-3 h-3" /> Voice Mode
+          <Mic className="w-3.5 h-3.5" /> Voice Mode
         </button>
       </div>
 
@@ -196,11 +234,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ lesson }) => {
       )}
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-100 bg-white">
-        <div className="flex gap-2">
+      <div className="p-4 border-t border-[#00E5FF]/20 bg-white/40 backdrop-blur-md relative z-10">
+        <div className="flex gap-3">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-[#00E5FF] hover:bg-blue-50/50 rounded-xl transition-all shadow-sm border border-transparent hover:border-[#00E5FF]/30"
           >
             <ImageIcon className="w-5 h-5" />
           </button>
@@ -217,12 +255,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ lesson }) => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Type or upload an image..."
-            className="flex-1 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="flex-1 bg-white/70 backdrop-blur-sm border border-[#00E5FF]/20 rounded-xl px-5 py-2.5 focus:outline-none focus:ring-4 focus:ring-[#00E5FF]/20 focus:border-[#00E5FF] text-sm text-gray-800 placeholder-gray-400 shadow-inner transition-all"
           />
           <button
             onClick={handleSend}
             disabled={(!input.trim() && !selectedImage) || isTyping}
-            className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="bg-gradient-to-r from-blue-600 to-[#00E5FF] text-white p-3 rounded-xl hover:shadow-[0_0_15px_rgba(0,229,255,0.4)] disabled:opacity-50 transition-all font-bold active:scale-[0.95]"
           >
             <Send className="w-5 h-5" />
           </button>

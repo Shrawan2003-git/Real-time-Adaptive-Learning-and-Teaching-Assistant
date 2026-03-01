@@ -24,6 +24,16 @@ export interface Doubt {
     reply?: string;
 }
 
+export interface SharedMaterial {
+    id: string;
+    sessionId: string;
+    title: string;
+    url?: string;
+    text?: string;
+    type: 'link' | 'note';
+    timestamp: any;
+}
+
 export interface ActiveSession {
     sessionId: string;
     teacherName: string;
@@ -157,6 +167,44 @@ export const subscribeToDoubts = (sessionId: string, callback: (doubts: Doubt[])
         callback(doubtsList);
     }, (error) => {
         console.error("Error listening to doubts:", error);
+    });
+
+    return unsubscribe;
+};
+
+// --- Custom Materials Management (Firestore Subcollection) ---
+
+export const shareMaterial = async (sessionId: string, material: Omit<SharedMaterial, 'id' | 'timestamp' | 'sessionId'>) => {
+    const colRef = collection(db, "sessions", sessionId, "materials");
+    await addDoc(colRef, {
+        ...material,
+        sessionId,
+        timestamp: serverTimestamp()
+    });
+};
+
+export const deleteSharedMaterial = async (sessionId: string, materialId: string) => {
+    const docRef = doc(db, "sessions", sessionId, "materials", materialId);
+    await deleteDoc(docRef);
+};
+
+export const subscribeToMaterials = (sessionId: string, callback: (mats: SharedMaterial[]) => void) => {
+    const colRef = collection(db, "sessions", sessionId, "materials");
+    const q = query(colRef, orderBy("timestamp", "desc")); // newest first
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const matsList: SharedMaterial[] = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            matsList.push({
+                ...data,
+                id: doc.id,
+                timestamp: data.timestamp ? data.timestamp.toDate() : new Date()
+            } as SharedMaterial);
+        });
+        callback(matsList);
+    }, (error) => {
+        console.error("Error listening to materials:", error);
     });
 
     return unsubscribe;

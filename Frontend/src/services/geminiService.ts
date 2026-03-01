@@ -1,5 +1,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { LessonData } from "../types";
+import { db } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
@@ -10,7 +12,7 @@ export const genAIClient = ai;
 const validateApiKey = (customKey?: string) => {
   const apiKey = customKey || process.env.API_KEY || '';
   if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
-    throw new Error("Gemini API Key is missing or set to placeholder. Please enter a valid key in the settings or update .env.local.");
+    throw new Error("Gemini API Key is missing or set to placeholder. Please update .env.local.");
   }
   return apiKey;
 };
@@ -54,18 +56,124 @@ const retryOperation = async <T>(
 
 export const generateLessonPlan = async (topic: string, level: string, language: string = 'English', apiKey?: string): Promise<LessonData> => {
   const effectiveKey = validateApiKey(apiKey);
+
+  // 1. Check Firestore Cache first to save API Quota
+  try {
+    const cacheKey = `lesson_${topic.toLowerCase().trim()}_${level.toLowerCase().trim()}_${language.toLowerCase().trim()}`.replace(/[^a-z0-9]/g, '_');
+    const docRef = doc(db, 'lessonCache', cacheKey);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      console.log('Serving lesson plan from Firestore cache:', cacheKey);
+      return docSnap.data() as LessonData;
+    }
+  } catch (err) {
+    console.warn("Cache read failed, falling back to API:", err);
+  }
+
   const localAi = new GoogleGenAI({ apiKey: effectiveKey });
 
   // ONLY gemini-2.5-flash is available for this key. 
   // No fallback to 1.5 is possible. We must rely on retries.
-  return await retryOperation(async () => {
+  const lessonPlan = await retryOperation(async () => {
     return await _generateWithModel(localAi, "gemini-2.5-flash", topic, level, language);
   }, 4, 3000); // Increased retries to 4, base delay to 3s (3, 6, 12, 24 seconds)
+
+  // 2. Save generated plan to Cache for future requests
+  try {
+    const cacheKey = `lesson_${topic.toLowerCase().trim()}_${level.toLowerCase().trim()}_${language.toLowerCase().trim()}`.replace(/[^a-z0-9]/g, '_');
+    await setDoc(doc(db, 'lessonCache', cacheKey), lessonPlan);
+  } catch (err) {
+    console.warn("Cache write failed:", err);
+  }
+
+  return lessonPlan;
+};
+
+export const generateLessonSummaryStream = async (topic: string, level: string, language: string, onChunk: (text: string) => void, apiKey?: string): Promise<string> => {
+  const effectiveKey = validateApiKey(apiKey);
+  const localAi = new GoogleGenAI({ apiKey: effectiveKey });
+
+  const prompt = `Create a highly detailed and comprehensive lesson guide for a ${level} student about "${topic}" in the language "${language}". 
+    Do NOT just provide a short definition. The response MUST be a deep-dive, detailed explanation covering all core topics, fundamentals, background context, and essential concepts. It should be formatted in polished Markdown (with suitable paragraph breaks, bold text, or lists if needed) so it reads like a proper textbook chapter.
+    Note: Do not include a quiz or diagram prompt in this text. Just the comprehensive educational content.`;
+
+  try {
+    const responseStream = await localAi.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    let fullText = '';
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        fullText += chunk.text;
+        onChunk(fullText); // Send cumulative text to UI to simulate typing
+      }
+    }
+    return fullText;
+  } catch (error: any) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      throw new Error("⚠️ High Traffic: The AI server is currently busy. Please wait 10-20 seconds and try again.");
+    }
+    throw error;
+  }
+};
+
+export const generateLessonMetadata = async (topic: string, level: string, language: string, summaryText: string, apiKey?: string): Promise<Omit<LessonData, 'topic' | 'level' | 'summary' | 'sessionId' | 'timestamp' | 'teacherName' | 'videoUrl' | 'imageUrl' | 'audioUrl'>> => {
+  const effectiveKey = validateApiKey(apiKey);
+  const localAi = new GoogleGenAI({ apiKey: effectiveKey });
+
+  const prompt = `Based on the following lesson summary about "${topic}" for a ${level} student (Language: ${language}):
+   
+   SUMMARY:
+   ${summaryText.substring(0, 3000)}...
+
+   Please extract/generate the following:
+   1. 3-5 key learning points.
+   2. A detailed English prompt describing an educational image/diagram that represents this topic.
+   3. A short quiz with 3 multiple choice questions (with hints for each).
+   Ensure the questions and key points are in ${language}.`;
+
+  return await retryOperation(async () => {
+    const response = await localAi.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            keyPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+            imagePrompt: { type: Type.STRING, description: "A detailed prompt in English to generate an educational diagram." },
+            quiz: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  correctAnswer: { type: Type.INTEGER, description: "Index of the correct option (0-based)" },
+                  hint: { type: Type.STRING, description: "A helpful hint if the student gets it wrong." }
+                },
+                required: ["question", "options", "correctAnswer", "hint"]
+              }
+            }
+          },
+          required: ["keyPoints", "imagePrompt", "quiz"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No metadata response");
+    return JSON.parse(cleanJSON(text));
+  });
 };
 
 const _generateWithModel = async (aiInstance: GoogleGenAI, model: string, topic: string, level: string, language: string): Promise<LessonData> => {
-  const prompt = `Create a comprehensive lesson plan for a ${level} student about "${topic}" in the language "${language}". 
-    Include a summary, 3-5 key learning points, a prompt for a descriptive diagram/image that would help explain the concept, 
+  const prompt = `Create a highly detailed and comprehensive lesson guide for a ${level} student about "${topic}" in the language "${language}". 
+    Do NOT just provide a short definition. The 'summary' field MUST be a deep-dive, detailed explanation covering all core topics, fundamentals, background context, and essential concepts. It should be formatted in polished Markdown (with suitable paragraph breaks, bold text, or lists if needed) so it reads like a proper textbook chapter.
+    Include 3-5 key learning points, a prompt for a descriptive diagram/image that would help explain the concept, 
     and a short quiz with 3 multiple choice questions (with hints for each).
     Ensure all content (summary, questions, options, hints) is in ${language}.`;
 
@@ -292,10 +400,23 @@ export const chatWithTutor = async (history: { role: string, parts: any[] }[], m
 };
 export const searchRelatedResources = async (topic: string, level: string, query?: string, apiKey?: string) => {
   const effectiveKey = validateApiKey(apiKey);
-  const localAi = new GoogleGenAI({ apiKey: effectiveKey });
-
-  const model = "gemini-2.5-flash";
   const searchQuery = query ? `${query} related to ${topic}` : topic;
+
+  // 1. Check Firestore Cache first
+  try {
+    const cacheKey = `search_${searchQuery.toLowerCase().trim()}_${level.toLowerCase().trim()}`.replace(/[^a-z0-9]/g, '_');
+    const docRef = doc(db, 'resourceCache', cacheKey);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      console.log('Serving search resources from cache:', cacheKey);
+      return docSnap.data().results;
+    }
+  } catch (err) {
+    console.warn("Resource cache read failed:", err);
+  }
+
+  const localAi = new GoogleGenAI({ apiKey: effectiveKey });
+  const model = "gemini-2.5-flash";
 
   const prompt = `Act as an educational resource curator for a ${level} student. 
   Find 4-5 high-quality related resources for the topic: "${searchQuery}".
@@ -333,7 +454,15 @@ export const searchRelatedResources = async (topic: string, level: string, query
     if (!text) throw new Error("No search results response");
 
     try {
-      return JSON.parse(cleanJSON(text));
+      const results = JSON.parse(cleanJSON(text));
+      // 2. Save generated resources to Cache
+      try {
+        const cacheKey = `search_${searchQuery.toLowerCase().trim()}_${level.toLowerCase().trim()}`.replace(/[^a-z0-9]/g, '_');
+        await setDoc(doc(db, 'resourceCache', cacheKey), { results });
+      } catch (err) {
+        console.warn("Resource cache write failed:", err);
+      }
+      return results;
     } catch (e) {
       throw new Error("Failed to parse search results");
     }
@@ -371,6 +500,20 @@ export const searchRelatedResources = async (topic: string, level: string, query
 
 export const generatePracticeExam = async (topic: string, level: string, type: 'theory' | 'practical' | 'both', totalMarks: number, apiKey?: string): Promise<string> => {
   const effectiveKey = validateApiKey(apiKey);
+
+  // 1. Check Firestore Cache
+  try {
+    const cacheKey = `exam_${topic.toLowerCase().trim()}_${level.toLowerCase().trim()}_${type}_${totalMarks}`.replace(/[^a-z0-9]/g, '_');
+    const docRef = doc(db, 'examCache', cacheKey);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      console.log('Serving practice exam from cache:', cacheKey);
+      return docSnap.data().content;
+    }
+  } catch (err) {
+    console.warn("Exam cache read failed:", err);
+  }
+
   const localAi = new GoogleGenAI({ apiKey: effectiveKey });
 
   return await retryOperation(async () => {
@@ -395,6 +538,15 @@ export const generatePracticeExam = async (topic: string, level: string, type: '
     });
 
     if (!response.text) throw new Error("Failed to generate exam paper.");
+
+    // Save to Cache before returning
+    try {
+      const cacheKey = `exam_${topic.toLowerCase().trim()}_${level.toLowerCase().trim()}_${type}_${totalMarks}`.replace(/[^a-z0-9]/g, '_');
+      await setDoc(doc(db, 'examCache', cacheKey), { content: response.text });
+    } catch (err) {
+      console.warn("Exam cache write failed:", err);
+    }
+
     return response.text;
   });
 };

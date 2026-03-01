@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { LessonData } from '../types';
-import { BookOpen, StopCircle, ArrowLeft, Share2, Video, ImageIcon, Sparkles, MessageSquare, AlertCircle, Send, Plus, Users, User } from 'lucide-react';
-import { subscribeToSession, endBroadcast, subscribeToDoubts, replyToDoubt, subscribeToStudentActivity, StudentActivity } from '../services/classroomSync';
+import { BookOpen, StopCircle, ArrowLeft, Share2, Video, ImageIcon, Sparkles, MessageSquare, AlertCircle, Send, Plus, Users, User, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { subscribeToSession, endBroadcast, subscribeToDoubts, replyToDoubt, subscribeToStudentActivity, StudentActivity, shareMaterial, deleteSharedMaterial, subscribeToMaterials, SharedMaterial } from '../services/classroomSync';
 import { Button } from './Button';
+import { renderMarkdown } from '../utils/markdownUtils';
 
 export const TeacherLiveView: React.FC<{ sessionId: string, onExit: () => void }> = ({ sessionId, onExit }) => {
     const [lesson, setLesson] = useState<LessonData | null>(null);
@@ -10,6 +11,12 @@ export const TeacherLiveView: React.FC<{ sessionId: string, onExit: () => void }
     const [answeringDoubtId, setAnsweringDoubtId] = useState<string | null>(null);
     const [replyText, setReplyText] = useState('');
     const [activities, setActivities] = useState<StudentActivity[]>([]);
+
+    // Custom Materials State
+    const [materials, setMaterials] = useState<SharedMaterial[]>([]);
+    const [newMaterialTitle, setNewMaterialTitle] = useState('');
+    const [newMaterialUrl, setNewMaterialUrl] = useState('');
+    const [isAddingMaterial, setIsAddingMaterial] = useState(false);
 
     useEffect(() => {
         // Subscribe to active lesson
@@ -27,10 +34,16 @@ export const TeacherLiveView: React.FC<{ sessionId: string, onExit: () => void }
             setActivities(actData);
         });
 
+        // Subscribe to shared materials
+        const unsubMaterials = subscribeToMaterials(sessionId, (mats) => {
+            setMaterials(mats);
+        });
+
         return () => {
             unsubLesson();
             unsubDoubts();
             unsubActivity();
+            unsubMaterials();
         };
     }, []);
 
@@ -44,6 +57,25 @@ export const TeacherLiveView: React.FC<{ sessionId: string, onExit: () => void }
         replyToDoubt(sessionId, doubtId, replyText);
         setAnsweringDoubtId(null);
         setReplyText('');
+    };
+
+    const handleShareMaterial = async () => {
+        if (!newMaterialTitle.trim() || !newMaterialUrl.trim()) return;
+        setIsAddingMaterial(true);
+        try {
+            await shareMaterial(sessionId, {
+                title: newMaterialTitle,
+                url: newMaterialUrl,
+                type: 'link'
+            });
+            setNewMaterialTitle('');
+            setNewMaterialUrl('');
+        } catch (e) {
+            console.error("Failed to share material", e);
+            alert("Failed to share material. Check console.");
+        } finally {
+            setIsAddingMaterial(false);
+        }
     };
 
     if (!lesson) {
@@ -100,7 +132,9 @@ export const TeacherLiveView: React.FC<{ sessionId: string, onExit: () => void }
                             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-medium">{lesson.level}</span>
                         </div>
 
-                        <p className="text-gray-600 leading-relaxed mb-6">{lesson.summary}</p>
+                        <div className="mb-6">
+                            {renderMarkdown(lesson.summary)}
+                        </div>
 
                         {/* Interactive Elements */}
                         {lesson.videoUrl && (
@@ -202,6 +236,71 @@ export const TeacherLiveView: React.FC<{ sessionId: string, onExit: () => void }
                                         </div>
                                     );
                                 })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Shared Materials Control */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                            <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                                <LinkIcon className="w-5 h-5 text-indigo-500" />
+                                Custom Study Materials
+                            </h2>
+                        </div>
+
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
+                            <h3 className="text-sm font-bold text-gray-700 mb-3">Push New Link to Students</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <input
+                                    type="text"
+                                    placeholder="Resource Title (e.g. Wikipedia: Photosynthesis)"
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    value={newMaterialTitle}
+                                    onChange={e => setNewMaterialTitle(e.target.value)}
+                                />
+                                <input
+                                    type="url"
+                                    placeholder="URL (https://...)"
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    value={newMaterialUrl}
+                                    onChange={e => setNewMaterialUrl(e.target.value)}
+                                />
+                            </div>
+                            <Button
+                                onClick={handleShareMaterial}
+                                disabled={!newMaterialTitle.trim() || !newMaterialUrl.trim()}
+                                isLoading={isAddingMaterial}
+                                className="w-full sm:w-auto text-sm h-9"
+                                icon={<Plus className="w-4 h-4" />}
+                            >
+                                Share Instantly
+                            </Button>
+                        </div>
+
+                        {materials.length > 0 && (
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Actively Shared</h3>
+                                {materials.map(mat => (
+                                    <div key={mat.id} className="flex items-center justify-between p-3 border border-indigo-100 bg-indigo-50/30 rounded-lg">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="w-8 h-8 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                                                <LinkIcon className="w-4 h-4" />
+                                            </div>
+                                            <div className="truncate">
+                                                <p className="text-sm font-bold text-gray-900 truncate">{mat.title}</p>
+                                                <a href={mat.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline truncate block">{mat.url}</a>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => deleteSharedMaterial(sessionId, mat.id)}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0 m-2"
+                                            title="Remove Material"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

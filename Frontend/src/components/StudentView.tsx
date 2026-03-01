@@ -6,12 +6,13 @@ import { generateLessonAudio } from '../services/geminiService';
 import { base64ToUint8Array, decodeAudioData } from '../utils/audioUtils';
 import { BookOpen, HelpCircle, CheckCircle, XCircle, AlertCircle, Eye, Volume2, Play, Loader2, Pause, ArrowLeft, MessageCircle, Clock, Search, ExternalLink, Video as VideoIcon, FileText, Hash, Home, LogOut } from 'lucide-react';
 import { Button } from './Button';
-import { raiseDoubt, Doubt, subscribeToDoubts, subscribeToSession, ActiveSession } from '../services/classroomSync';
+import { raiseDoubt, Doubt, subscribeToDoubts, subscribeToSession, ActiveSession, subscribeToMaterials, SharedMaterial } from '../services/classroomSync';
 import { searchRelatedResources } from '../services/geminiService';
 import { RelatedResource } from '../types';
 import { SessionHistory } from './SessionHistory';
 import { MyDoubtsNotepad } from './MyDoubtsNotepad';
 import { ExamSimulator } from './ExamSimulator';
+import { renderMarkdown } from '../utils/markdownUtils';
 
 interface StudentViewProps {
   lesson?: LessonData;
@@ -39,6 +40,7 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
   const [isLoadingResources, setIsLoadingResources] = useState(false);
   const [resourceSearchQuery, setResourceSearchQuery] = useState('');
   const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
+  const [teacherMaterials, setTeacherMaterials] = useState<SharedMaterial[]>([]);
 
   // Doubt State
   const [showDoubtModal, setShowDoubtModal] = useState(false);
@@ -81,6 +83,7 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
   React.useEffect(() => {
     let unsubSession: () => void;
     let unsubDoubts: () => void;
+    let unsubMaterials: () => void;
 
     if (sessionId) {
       unsubSession = subscribeToSession(sessionId, (session) => {
@@ -96,11 +99,16 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
       unsubDoubts = subscribeToDoubts(sessionId, (doubts) => {
         setMyDoubts(doubts);
       });
+
+      unsubMaterials = subscribeToMaterials(sessionId, (mats) => {
+        setTeacherMaterials(mats);
+      });
     }
 
     return () => {
       if (unsubSession) unsubSession();
       if (unsubDoubts) unsubDoubts();
+      if (unsubMaterials) unsubMaterials();
     };
   }, [sessionId, onExit]);
 
@@ -421,17 +429,6 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('drafts')}
-              className={`px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'drafts'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" /> My Doubts Notepad
-              </div>
-            </button>
-            <button
               onClick={() => setActiveTab('exam')}
               className={`px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'exam'
                 ? 'border-b-2 border-blue-600 text-blue-600'
@@ -443,14 +440,6 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
               </div>
             </button>
           </div>
-
-          {/* Drafts Tab */}
-          {activeTab === 'drafts' && (
-            <MyDoubtsNotepad
-              onSendDoubt={submitDoubt}
-              disabled={isHistoryMode || (sessionId && !activeSession)}
-            />
-          )}
 
           {/* Exam Simulator Tab */}
           {activeTab === 'exam' && currentLesson && (
@@ -493,7 +482,9 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
                     {isPlayingAudio ? 'Stop Audio' : 'Listen'}
                   </button>
                 </div>
-                <p className="text-gray-600 leading-relaxed">{currentLesson?.summary}</p>
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  {renderMarkdown(currentLesson?.summary || '')}
+                </div>
               </div>
 
               {currentLesson?.imageUrl && !currentLesson?.videoUrl && (
@@ -674,6 +665,34 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
                 </form>
               </div>
 
+              {teacherMaterials.length > 0 && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-8">
+                  <h3 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded bg-indigo-200 text-indigo-700 flex items-center justify-center">
+                      <ExternalLink className="w-4 h-4" />
+                    </span>
+                    Teacher's Custom Materials
+                  </h3>
+                  <div className="grid gap-3">
+                    {teacherMaterials.map(mat => (
+                      <a
+                        key={mat.id}
+                        href={mat.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm hover:shadow hover:border-indigo-300 transition-all flex items-center justify-between group"
+                      >
+                        <div className="min-w-0 pr-4">
+                          <p className="font-bold text-gray-900 group-hover:text-indigo-700 truncate">{mat.title}</p>
+                          <p className="text-xs text-indigo-500 truncate mt-0.5">{mat.url}</p>
+                        </div>
+                        <Button variant="secondary" className="scale-90 opacity-0 group-hover:opacity-100 transition-opacity">Open</Button>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {isLoadingResources ? (
                 <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                   <Loader2 className="w-10 h-10 animate-spin mb-4" />
@@ -718,6 +737,10 @@ export const StudentView: React.FC<StudentViewProps> = ({ lesson, sessionId, stu
 
         {/* Sidebar / Chat (1 col) */}
         <div className="space-y-6">
+          <MyDoubtsNotepad
+            onSendDoubt={submitDoubt}
+            disabled={isHistoryMode || (sessionId && !activeSession)}
+          />
           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg overflow-hidden relative">
             <div className="relative z-10">
               <h3 className="font-bold text-lg mb-2">Adaptive Assistant</h3>

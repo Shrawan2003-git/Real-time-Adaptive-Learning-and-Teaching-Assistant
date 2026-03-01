@@ -51,12 +51,12 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({ onSelectSession 
 
     if (allHistory.length === 0) {
         return (
-            <div className="text-center p-8 bg-white rounded-xl border border-dashed border-gray-300">
-                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Clock className="w-6 h-6 text-gray-400" />
+            <div className="text-center p-8 dashboard-card border-dashed border-2 border-amber-200/50 rounded-3xl">
+                <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 ring-1 ring-amber-100">
+                    <Clock className="w-7 h-7 text-amber-600/60" />
                 </div>
-                <h3 className="text-gray-900 font-medium">No Session History</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-gray-900 font-bold font-playfair text-xl">No Session History</h3>
+                <p className="text-sm text-gray-500 mt-2 font-medium">
                     Your past lessons will appear here for revision.
                 </p>
             </div>
@@ -64,10 +64,12 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({ onSelectSession 
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-indigo-600" />
+        <div className="dashboard-card rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-amber-100/50 bg-amber-50/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h3 className="font-bold text-gray-800 flex items-center gap-3 font-playfair text-xl">
+                    <div className="w-8 h-8 rounded-full bg-amber-100/80 flex items-center justify-center shadow-inner ring-1 ring-amber-200">
+                        <Clock className="w-4 h-4 text-amber-700" />
+                    </div>
                     Recent Sessions
                 </h3>
                 <div className="relative max-w-xs w-full">
@@ -96,17 +98,17 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({ onSelectSession 
                         const isActive = !!activeSession;
 
                         return (
-                            <div key={record.id} className="w-full text-left p-4 hover:bg-indigo-50/50 hover:-translate-y-1 hover:shadow-sm hover:z-10 transition-all duration-300 group flex items-start gap-4 border-b border-gray-50 last:border-0 relative">
+                            <div key={record.id} className="w-full text-left p-5 hover:bg-amber-50/40 hover:-translate-y-1 hover:shadow-sm hover:z-10 transition-all duration-300 group flex items-start gap-5 border-b border-gray-100/50 last:border-0 relative bg-white/40">
                                 <button
                                     onClick={() => onSelectSession(record.lesson)}
                                     className="flex-1 flex items-start gap-4 text-left"
                                 >
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isActive ? 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white' : 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'}`}>
-                                        <BookOpen className="w-5 h-5" />
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all shadow-sm ${isActive ? 'bg-red-50 text-red-600 ring-1 ring-red-200 group-hover:bg-red-100' : 'bg-[#FDFBF7] text-amber-700 ring-1 ring-amber-200/60 group-hover:bg-amber-100 group-hover:text-amber-800'}`}>
+                                        <BookOpen className="w-6 h-6" />
                                     </div>
 
-                                    <div className="flex-1 min-w-0 pr-24">
-                                        <h4 className={`font-bold truncate ${isActive ? 'text-red-700' : 'text-gray-900 group-hover:text-indigo-700'}`}>
+                                    <div className="flex-1 min-w-0 pr-24 pt-1">
+                                        <h4 className={`text-lg font-bold truncate transition-colors ${isActive ? 'text-red-700' : 'text-gray-900 group-hover:text-amber-800'}`}>
                                             {record.lesson.topic}
                                         </h4>
                                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
