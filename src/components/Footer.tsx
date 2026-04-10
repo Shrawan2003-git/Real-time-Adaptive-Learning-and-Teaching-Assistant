@@ -1,5 +1,5 @@
 import React from 'react';
-import { GraduationCap, Github, Twitter, Linkedin, Heart, Mail } from 'lucide-react';
+import { GraduationCap, Github, Linkedin, Heart, Mail } from 'lucide-react';
 
 export const Footer = () => {
 
@@ -21,20 +21,16 @@ export const Footer = () => {
                             Redefining education with AI-powered personalized learning environments. Building the classroom of tomorrow, today.
                         </p>
                         <div className="flex gap-4">
-                            {/* Twitter — placeholder */}
-                            <a href="" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="Twitter">
-                                <Twitter className="w-5 h-5" />
-                            </a>
-                            {/* LinkedIn — placeholder */}
-                            <a href="" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="LinkedIn">
+                            {/* LinkedIn */}
+                            <a href="http://www.linkedin.com/in/shrawan-gautam-070429247" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="LinkedIn">
                                 <Linkedin className="w-5 h-5" />
                             </a>
-                            {/* GitHub — placeholder */}
-                            <a href="" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="GitHub">
+                            {/* GitHub */}
+                            <a href="https://github.com/Shrawan2003-git" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="GitHub">
                                 <Github className="w-5 h-5" />
                             </a>
-                            {/* Email — placeholder */}
-                            <a href="" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="Email">
+                            {/* Email */}
+                            <a href="mailto:shrawangautam01112003@gmail.com" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300" title="Email">
                                 <Mail className="w-5 h-5" />
                             </a>
                         </div>
